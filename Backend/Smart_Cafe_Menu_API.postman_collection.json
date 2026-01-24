@@ -1,0 +1,401 @@
+{
+	"info": {
+		"_postman_id": "smart-cafe-menu-api",
+		"name": "Smart Cafe - Menu API",
+		"description": "Complete API collection for Menu module. Menus are cafe-specific, only one active menu per cafe, supports manual and time-slot based activation.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Menu Management",
+			"item": [
+				{
+					"name": "Create Menu",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Breakfast Menu\",\n  \"timeSlot\": \"nashta\",\n  \"items\": []\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/menus",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menus"]
+						},
+						"description": "Create a new menu for the cafe. Menu is created as inactive by default. Cafe ID is automatically assigned from active cafe. Items can be added later."
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Menus (Staff)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/menus",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menus"]
+						},
+						"description": "Get all menus for the cafe (Manager/Receptionist). Returns all menus with status, time slots, and active indicator."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Active Menu (Customer)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/menus/active",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menus", "active"]
+						},
+						"description": "Get the active menu for customers to view. Returns menu with active items only. Resolves based on time-slot priority first, then manually activated menu."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Menu Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/menus/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menus", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{menu_id}}"
+								}
+							]
+						},
+						"description": "Get menu details by ID. Returns menu with all items and status information."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Menu (Inactive Only)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Menu Name\",\n  \"timeSlot\": \"khana\",\n  \"items\": [\"{{menu_item_id}}\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/menus/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menus", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{menu_id}}"
+								}
+							]
+						},
+						"description": "Update menu details. Only inactive menus can be edited. Active menus must be deactivated first. Items array contains MenuItem IDs."
+					},
+					"response": []
+				},
+				{
+					"name": "Activate Menu Manually",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/menus/:id/activate",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menus", ":id", "activate"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{menu_id}}"
+								}
+							]
+						},
+						"description": "Manually activate a menu. Deactivates any currently active menu for the cafe (transactional). Ensures only one active menu per cafe."
+					},
+					"response": []
+				},
+				{
+					"name": "Deactivate Menu",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/menus/:id/deactivate",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menus", ":id", "deactivate"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{menu_id}}"
+								}
+							]
+						},
+						"description": "Deactivate a menu. If menu is active, cafe will temporarily have no active menu. Customers cannot order until a menu is activated."
+					},
+					"response": []
+				},
+				{
+					"name": "Add Items to Menu",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"itemIds\": [\"{{menu_item_id}}\", \"{{menu_item_id2}}\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/menus/:id/items",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menus", ":id", "items"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{menu_id}}"
+								}
+							]
+						},
+						"description": "Add menu items to a menu. Items must belong to the same cafe. Only inactive menus can be modified. Disabled items will not appear to customers."
+					},
+					"response": []
+				},
+				{
+					"name": "Remove Items from Menu",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"itemIds\": [\"{{menu_item_id}}\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/menus/:id/items",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menus", ":id", "items"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{menu_id}}"
+								}
+							]
+						},
+						"description": "Remove menu items from a menu. Only inactive menus can be modified."
+					},
+					"response": []
+				},
+				{
+					"name": "Soft Delete Menu",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/menus/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menus", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{menu_id}}"
+								}
+							]
+						},
+						"description": "Soft delete menu (sets status to deleted). Menus are never permanently deleted to preserve order history."
+					},
+					"response": []
+				}
+			],
+			"description": "Menu management endpoints for Manager and Receptionist"
+		},
+		{
+			"name": "Time Slot Management",
+			"item": [
+				{
+					"name": "Set Menu Time Slots",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"timeSlots\": [\n    {\n      \"dayOfWeek\": 1,\n      \"startTime\": \"08:00\",\n      \"endTime\": \"12:00\",\n      \"priority\": 1\n    },\n    {\n      \"dayOfWeek\": 1,\n      \"startTime\": \"12:00\",\n      \"endTime\": \"18:00\",\n      \"priority\": 2\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/menus/:id/time-slots",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menus", ":id", "time-slots"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{menu_id}}"
+								}
+							]
+						},
+						"description": "Set time slots for menu scheduling. Overlapping time slots across menus are NOT allowed. dayOfWeek: 0-6 (Sunday-Saturday) or 1-7 (Monday-Sunday). Time format: HH:mm (24-hour)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Menu Time Slots",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/menus/:id/time-slots",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menus", ":id", "time-slots"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{menu_id}}"
+								}
+							]
+						},
+						"description": "Get time slots for a menu."
+					},
+					"response": []
+				},
+				{
+					"name": "Remove Time Slots",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/menus/:id/time-slots",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menus", ":id", "time-slots"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{menu_id}}"
+								}
+							]
+						},
+						"description": "Remove all time slots from a menu."
+					},
+					"response": []
+				}
+			],
+			"description": "Time slot management for automatic menu activation based on day and time"
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "cafe_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "menu_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "menu_item_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "menu_item_id2",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

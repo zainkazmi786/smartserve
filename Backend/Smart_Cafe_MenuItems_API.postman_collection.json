@@ -1,0 +1,270 @@
+{
+	"info": {
+		"_postman_id": "smart-cafe-menu-items-api",
+		"name": "Smart Cafe - Menu Items API",
+		"description": "Complete API collection for Menu Items module. Menu items are managed by Manager and Receptionist, scoped to cafe, and support short/long preparation types.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Menu Items",
+			"item": [
+				{
+					"name": "Create Menu Item (Short)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Hot Coffee\",\n  \"description\": \"Freshly brewed hot coffee\",\n  \"category\": \"Beverages\",\n  \"price\": 150,\n  \"type\": \"short\",\n  \"images\": []\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/menu-items",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menu-items"]
+						},
+						"description": "Create a short type menu item (instant preparation). timeToCook is not required for short items. Cafe ID is automatically assigned from active cafe."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Menu Item (Long)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Grilled Chicken Burger\",\n  \"description\": \"Juicy grilled chicken with fresh vegetables\",\n  \"category\": \"Burgers\",\n  \"price\": 450,\n  \"type\": \"long\",\n  \"timeToCook\": 900,\n  \"images\": []\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/menu-items",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menu-items"]
+						},
+						"description": "Create a long type menu item (requires preparation time). timeToCook is required and should be in seconds (e.g., 900 = 15 minutes)."
+					},
+					"response": []
+				},
+				{
+					"name": "List Menu Items",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/menu-items?category=Beverages&isActive=true",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menu-items"],
+							"query": [
+								{
+									"key": "category",
+									"value": "Beverages",
+									"description": "Filter by category (optional)"
+								},
+								{
+									"key": "isActive",
+									"value": "true",
+									"description": "Filter by active status: true/false (optional). Manager/Receptionist see all items."
+								},
+								{
+									"key": "cafe",
+									"value": "{{cafe_id}}",
+									"description": "Filter by cafe (Super Admin only, optional)"
+								}
+							]
+						},
+						"description": "List menu items. Manager/Receptionist see items from their cafe. Super Admin can filter by cafe. Can filter by category and isActive status."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Menu Item",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/menu-items/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menu-items", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{menu_item_id}}"
+								}
+							]
+						},
+						"description": "Get menu item details by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Menu Item",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Item Name\",\n  \"description\": \"Updated description\",\n  \"category\": \"Updated Category\",\n  \"price\": 500,\n  \"type\": \"long\",\n  \"timeToCook\": 1200\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/menu-items/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menu-items", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{menu_item_id}}"
+								}
+							]
+						},
+						"description": "Update menu item. All fields are optional. If changing type, ensure timeToCook rules are followed."
+					},
+					"response": []
+				},
+				{
+					"name": "Toggle Menu Item Status",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"isActive\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/menu-items/:id/status",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menu-items", ":id", "status"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{menu_item_id}}"
+								}
+							]
+						},
+						"description": "Toggle menu item active status (soft delete). Set isActive to false to hide item from menus without deleting it."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Menu Item (Soft Delete)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/menu-items/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menu-items", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{menu_item_id}}"
+								}
+							]
+						},
+						"description": "Soft delete menu item (sets isActive = false). Item is not permanently deleted to preserve order history."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Categories",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/menu-items/categories?cafe={{cafe_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menu-items", "categories"],
+							"query": [
+								{
+									"key": "cafe",
+									"value": "{{cafe_id}}",
+									"description": "Cafe ID (Super Admin only, optional)"
+								}
+							]
+						},
+						"description": "Get unique categories for menu items. Manager/Receptionist get categories for their cafe. Super Admin can specify cafe."
+					},
+					"response": []
+				}
+			],
+			"description": "Menu item management endpoints. Manager and Receptionist can create, update, and manage items from their cafe."
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "cafe_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "menu_item_id",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

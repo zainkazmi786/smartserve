@@ -1,0 +1,814 @@
+{
+	"info": {
+		"_postman_id": "review-api-collection",
+		"name": "Smart Cafe - Review API",
+		"description": "Complete Review Management APIs for managers and receptionists to view, reply, update, and delete customer reviews",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{authToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "Create Review",
+			"item": [
+				{
+					"name": "Create Review for Menu Item",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"item\": \"{{menuItemId}}\",\n  \"rating\": 5,\n  \"comment\": \"Excellent food! Highly recommended.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/reviews",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reviews"]
+						},
+						"description": "Create a review for a menu item. Requires customer role. Rating must be 1-5."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Review for Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"order\": \"{{orderId}}\",\n  \"rating\": 4,\n  \"comment\": \"Good service, but could be faster.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/reviews",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reviews"]
+						},
+						"description": "Create a review for an order. Customer can only review their own orders."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Review (Rating Only)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"item\": \"{{menuItemId}}\",\n  \"rating\": 5\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/reviews",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reviews"]
+						},
+						"description": "Create a review with only rating (no comment). Comment is optional."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Review - Error (No Item/Order)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"rating\": 5,\n  \"comment\": \"This should fail\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/reviews",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reviews"]
+						},
+						"description": "Should return 400 - Either item or order is required"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Review - Error (Both Item and Order)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"item\": \"{{menuItemId}}\",\n  \"order\": \"{{orderId}}\",\n  \"rating\": 5\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/reviews",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reviews"]
+						},
+						"description": "Should return 400 - Cannot provide both item and order"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Review - Error (Invalid Rating)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"item\": \"{{menuItemId}}\",\n  \"rating\": 6\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/reviews",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reviews"]
+						},
+						"description": "Should return 400 - Rating must be between 1 and 5"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Review - Error (Duplicate Review)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"item\": \"{{menuItemId}}\",\n  \"rating\": 5,\n  \"comment\": \"Trying to review same item again\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/reviews",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reviews"]
+						},
+						"description": "Should return 400 - User already reviewed this item/order"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Review - Error (Other User's Order)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"order\": \"{{otherUserOrderId}}\",\n  \"rating\": 5\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/reviews",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reviews"]
+						},
+						"description": "Should return 403 - Customer can only review their own orders"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "List Reviews",
+			"item": [
+				{
+					"name": "Get All Reviews",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/reviews?page=1&limit=10&sort=-createdAt",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reviews"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number (default: 1)"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Items per page (default: 10)"
+								},
+								{
+									"key": "sort",
+									"value": "-createdAt",
+									"description": "Sort order (default: -createdAt for newest first)"
+								}
+							]
+						},
+						"description": "List all reviews for the authenticated user's cafe. Managers and Receptionists see their cafe's reviews. Customers see only their own reviews."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Reviews by Rating",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/reviews?rating=5&page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reviews"],
+							"query": [
+								{
+									"key": "rating",
+									"value": "5",
+									"description": "Filter by rating (1-5)"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Filter reviews by rating (1-5 stars)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Reviews by Item",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/reviews?item={{menuItemId}}&page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reviews"],
+							"query": [
+								{
+									"key": "item",
+									"value": "{{menuItemId}}",
+									"description": "Filter by menu item ID"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get all reviews for a specific menu item"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Reviews by Order",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/reviews?order={{orderId}}&page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reviews"],
+							"query": [
+								{
+									"key": "order",
+									"value": "{{orderId}}",
+									"description": "Filter by order ID"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get all reviews for a specific order"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Reviews by User (Manager/Superadmin)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/reviews?user={{userId}}&page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reviews"],
+							"query": [
+								{
+									"key": "user",
+									"value": "{{userId}}",
+									"description": "Filter by user ID (Manager/Superadmin only)"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get all reviews by a specific user. Only available for Managers and Superadmins."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Reviews with Multiple Filters",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/reviews?rating=5&item={{menuItemId}}&page=1&limit=20&sort=-createdAt",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reviews"],
+							"query": [
+								{
+									"key": "rating",
+									"value": "5",
+									"description": "5-star reviews only"
+								},
+								{
+									"key": "item",
+									"value": "{{menuItemId}}",
+									"description": "Specific menu item"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "sort",
+									"value": "-createdAt",
+									"description": "Newest first"
+								}
+							]
+						},
+						"description": "Combine multiple filters: rating + item"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Get Single Review",
+			"item": [
+				{
+					"name": "Get Review by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/reviews/:reviewId",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reviews", ":reviewId"],
+							"variable": [
+								{
+									"key": "reviewId",
+									"value": "{{reviewId}}",
+									"description": "Review ID"
+								}
+							]
+						},
+						"description": "Get detailed information about a specific review including all populated fields (cafe, user, item, order, managerReply)"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Reply to Review",
+			"item": [
+				{
+					"name": "Reply to Review (Manager/Receptionist)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"message\": \"Thank you for your feedback! We're glad you enjoyed your meal. We'll continue to improve our service.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/reviews/:reviewId/reply",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reviews", ":reviewId", "reply"],
+							"variable": [
+								{
+									"key": "reviewId",
+									"value": "{{reviewId}}",
+									"description": "Review ID"
+								}
+							]
+						},
+						"description": "Add or update a manager/receptionist reply to a review. Both Manager and Receptionist roles can reply. Message must be 1-500 characters."
+					},
+					"response": []
+				},
+				{
+					"name": "Reply to Review (Short Message)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"message\": \"Thank you!\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/reviews/:reviewId/reply",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reviews", ":reviewId", "reply"],
+							"variable": [
+								{
+									"key": "reviewId",
+									"value": "{{reviewId}}"
+								}
+							]
+						},
+						"description": "Example of a short reply message"
+					},
+					"response": []
+				},
+				{
+					"name": "Reply to Review (Error - Empty Message)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"message\": \"\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/reviews/:reviewId/reply",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reviews", ":reviewId", "reply"],
+							"variable": [
+								{
+									"key": "reviewId",
+									"value": "{{reviewId}}"
+								}
+							]
+						},
+						"description": "This should return 400 error - message is required"
+					},
+					"response": []
+				},
+				{
+					"name": "Reply to Review (Error - Too Long)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"message\": \"This is a very long message that exceeds 500 characters. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/reviews/:reviewId/reply",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reviews", ":reviewId", "reply"],
+							"variable": [
+								{
+									"key": "reviewId",
+									"value": "{{reviewId}}"
+								}
+							]
+						},
+						"description": "This should return 400 error - message exceeds 500 characters"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Update Review",
+			"item": [
+				{
+					"name": "Update Review Comment (Manager Only)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"comment\": \"Updated comment text\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/reviews/:reviewId",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reviews", ":reviewId"],
+							"variable": [
+								{
+									"key": "reviewId",
+									"value": "{{reviewId}}",
+									"description": "Review ID"
+								}
+							]
+						},
+						"description": "Update review comment. Only Manager role can update reviews. Receptionist cannot update."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Delete Review",
+			"item": [
+				{
+					"name": "Delete Review (Manager Only)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/reviews/:reviewId",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reviews", ":reviewId"],
+							"variable": [
+								{
+									"key": "reviewId",
+									"value": "{{reviewId}}",
+									"description": "Review ID"
+								}
+							]
+						},
+						"description": "Delete a review permanently. Only Manager role can delete reviews. Receptionist cannot delete."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Error Scenarios",
+			"item": [
+				{
+					"name": "Get Review - Not Found",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/reviews/507f1f77bcf86cd799439011",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reviews", "507f1f77bcf86cd799439011"]
+						},
+						"description": "Should return 404 - Review not found"
+					},
+					"response": []
+				},
+				{
+					"name": "Reply - Unauthorized (Wrong Cafe)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"message\": \"This should fail - review from different cafe\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/reviews/:reviewId/reply",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reviews", ":reviewId", "reply"],
+							"variable": [
+								{
+									"key": "reviewId",
+									"value": "{{otherCafeReviewId}}",
+									"description": "Review ID from different cafe"
+								}
+							]
+						},
+						"description": "Should return 403 - Access denied (review from different cafe)"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete - Unauthorized (Receptionist)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/reviews/:reviewId",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reviews", ":reviewId"],
+							"variable": [
+								{
+									"key": "reviewId",
+									"value": "{{reviewId}}"
+								}
+							]
+						},
+						"description": "Should return 403 - Receptionist cannot delete reviews (use Receptionist token)"
+					},
+					"response": []
+				},
+				{
+					"name": "List Reviews - No Auth Token",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"auth": {
+							"type": "noauth"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/reviews",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reviews"]
+						},
+						"description": "Should return 401 - Authentication required"
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "authToken",
+			"value": "",
+			"type": "string",
+			"description": "JWT token from login endpoint"
+		},
+		{
+			"key": "reviewId",
+			"value": "",
+			"type": "string",
+			"description": "Review ID from list reviews response"
+		},
+		{
+			"key": "menuItemId",
+			"value": "",
+			"type": "string",
+			"description": "Menu Item ID for filtering"
+		},
+		{
+			"key": "orderId",
+			"value": "",
+			"type": "string",
+			"description": "Order ID for filtering"
+		},
+		{
+			"key": "userId",
+			"value": "",
+			"type": "string",
+			"description": "User ID for filtering (Manager/Superadmin only)"
+		},
+		{
+			"key": "otherCafeReviewId",
+			"value": "",
+			"type": "string",
+			"description": "Review ID from a different cafe (for testing access control)"
+		},
+		{
+			"key": "otherUserOrderId",
+			"value": "",
+			"type": "string",
+			"description": "Order ID belonging to another user (for testing access control)"
+		}
+	]
+}

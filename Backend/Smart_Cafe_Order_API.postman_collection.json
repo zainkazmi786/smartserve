@@ -1,0 +1,400 @@
+{
+	"info": {
+		"_postman_id": "order-api-collection",
+		"name": "Smart Cafe - Order API",
+		"description": "Complete Order Management APIs including kitchen queue, approval workflow, and notifications",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{authToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "Order Creation",
+			"item": [
+				{
+					"name": "Create Order (Customer)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"items\": [\n    {\n      \"itemId\": \"{{menuItemId}}\",\n      \"quantity\": 2,\n      \"cookingOverrideType\": \"short\"\n    },\n    {\n      \"itemId\": \"{{menuItemId2}}\",\n      \"quantity\": 1\n    }\n  ],\n  \"paymentMethod\": \"receipt\",\n  \"receiptImage\": \"https://example.com/receipt.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/orders",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "orders"]
+						},
+						"description": "Create order from cart. Requires customer role."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Order (Cash)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"items\": [\n    {\n      \"itemId\": \"{{menuItemId}}\",\n      \"quantity\": 1\n    }\n  ],\n  \"paymentMethod\": \"cash\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/orders",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "orders"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Receipt Management",
+			"item": [
+				{
+					"name": "Upload Receipt",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"receiptImage\": \"https://example.com/new-receipt.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/orders/:orderId/upload-receipt",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "orders", ":orderId", "upload-receipt"],
+							"variable": [
+								{
+									"key": "orderId",
+									"value": "{{orderId}}"
+								}
+							]
+						},
+						"description": "Upload or re-upload receipt for order"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Order Approval",
+			"item": [
+				{
+					"name": "Approve Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"paidAmount\": 500,\n  \"cookingOverrides\": [\n    {\n      \"orderItemId\": \"{{orderItemId}}\",\n      \"type\": \"long\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/orders/:orderId/approve",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "orders", ":orderId", "approve"],
+							"variable": [
+								{
+									"key": "orderId",
+									"value": "{{orderId}}"
+								}
+							]
+						},
+						"description": "Approve order and send to kitchen. Requires manager/receptionist role."
+					},
+					"response": []
+				},
+				{
+					"name": "Disapprove Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"rejectionNote\": \"Receipt image is unclear. Please re-upload.\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/orders/:orderId/disapprove",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "orders", ":orderId", "disapprove"],
+							"variable": [
+								{
+									"key": "orderId",
+									"value": "{{orderId}}"
+								}
+							]
+						},
+						"description": "Disapprove order payment. Requires manager/receptionist role."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Order Status Management",
+			"item": [
+				{
+					"name": "Cancel Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"cancellationNote\": \"Order cancelled by customer\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/orders/:orderId/cancel",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "orders", ":orderId", "cancel"],
+							"variable": [
+								{
+									"key": "orderId",
+									"value": "{{orderId}}"
+								}
+							]
+						},
+						"description": "Cancel order. Customer can cancel before approval, staff can cancel anytime."
+					},
+					"response": []
+				},
+				{
+					"name": "Mark Order Ready",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/orders/:orderId/mark-ready",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "orders", ":orderId", "mark-ready"],
+							"variable": [
+								{
+									"key": "orderId",
+									"value": "{{orderId}}"
+								}
+							]
+						},
+						"description": "Kitchen button press - mark order ready for pickup"
+					},
+					"response": []
+				},
+				{
+					"name": "Mark Order Received",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/orders/:orderId/mark-received",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "orders", ":orderId", "mark-received"],
+							"variable": [
+								{
+									"key": "orderId",
+									"value": "{{orderId}}"
+								}
+							]
+						},
+						"description": "Customer marks order as received"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Order Retrieval",
+			"item": [
+				{
+					"name": "Get Order Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/orders/:orderId",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "orders", ":orderId"],
+							"variable": [
+								{
+									"key": "orderId",
+									"value": "{{orderId}}"
+								}
+							]
+						},
+						"description": "Get order details by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Order History (Customer)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/orders?status=approved&startDate=2024-01-01&endDate=2024-12-31",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "orders"],
+							"query": [
+								{
+									"key": "status",
+									"value": "approved",
+									"description": "Filter by status: draft, payment_uploaded, cash_selected, disapproved, approved, preparing, ready, received, cancelled"
+								},
+								{
+									"key": "startDate",
+									"value": "2024-01-01"
+								},
+								{
+									"key": "endDate",
+									"value": "2024-12-31"
+								}
+							]
+						},
+						"description": "Get order history. Returns customer's own orders."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Order History (Manager - All Cafe Orders)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/orders?paymentMethod=receipt&customerId={{customerId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "orders"],
+							"query": [
+								{
+									"key": "paymentMethod",
+									"value": "receipt",
+									"description": "Filter by payment method: receipt or cash"
+								},
+								{
+									"key": "customerId",
+									"value": "{{customerId}}"
+								}
+							]
+						},
+						"description": "Manager view - all orders for their cafe with filters"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Order History (Receptionist - Today Only)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/orders",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "orders"]
+						},
+						"description": "Receptionist view - today's orders only"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Kitchen Queue",
+			"item": [
+				{
+					"name": "Get Next Kitchen Order",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/orders/kitchen/next",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "orders", "kitchen", "next"]
+						},
+						"description": "Get next order for kitchen screen. Automatically sets as current displayed order."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "authToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "orderId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "menuItemId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "customerId",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

@@ -1,0 +1,377 @@
+{
+	"info": {
+		"_postman_id": "smart-cafe-complete-api",
+		"name": "Smart Cafe - Complete API Collection",
+		"description": "Complete API collection for Smart Cafe including User Management and Cafe Management modules",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Cafe Management",
+			"item": [
+				{
+					"name": "Create Cafe",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"New Cafe Branch\",\n  \"email\": \"newcafe@smartcafe.com\",\n  \"phone\": \"+1234567899\",\n  \"taxPercentage\": 5\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/cafes",
+							"host": ["{{base_url}}"],
+							"path": ["api", "cafes"]
+						},
+						"description": "Create a new cafe. Super Admin only. Cafe is created without a manager (inactive until manager is assigned)."
+					},
+					"response": []
+				},
+				{
+					"name": "List Cafes",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/cafes",
+							"host": ["{{base_url}}"],
+							"path": ["api", "cafes"]
+						},
+						"description": "List cafes. Super Admin sees all cafes. Manager sees only their own cafe."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Cafe Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/cafes/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "cafes", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{cafe_id}}"
+								}
+							]
+						},
+						"description": "Get cafe details including basic info, settings, assigned manager, and active/inactive status."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Cafe",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Cafe Name\",\n  \"email\": \"updated@smartcafe.com\",\n  \"phone\": \"+1234567898\",\n  \"taxPercentage\": 7\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/cafes/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "cafes", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{cafe_id}}"
+								}
+							]
+						},
+						"description": "Update cafe details. Super Admin can update any cafe. Manager can only update their own cafe."
+					},
+					"response": []
+				},
+				{
+					"name": "Assign Manager to Cafe",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userId\": \"{{user_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/cafes/:id/assign-manager",
+							"host": ["{{base_url}}"],
+							"path": ["api", "cafes", ":id", "assign-manager"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{cafe_id}}"
+								}
+							]
+						},
+						"description": "Assign a manager to a cafe. Super Admin only. User must have manager role. Cafe becomes active. Manager cannot be assigned to multiple cafes."
+					},
+					"response": []
+				},
+				{
+					"name": "Change Cafe Manager",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userId\": \"{{user_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/cafes/:id/change-manager",
+							"host": ["{{base_url}}"],
+							"path": ["api", "cafes", ":id", "change-manager"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{cafe_id}}"
+								}
+							]
+						},
+						"description": "Change cafe manager. Super Admin only. Old manager is removed and new manager is assigned."
+					},
+					"response": []
+				}
+			],
+			"description": "Cafe management endpoints"
+		},
+		{
+			"name": "Cafe User Management",
+			"item": [
+				{
+					"name": "Add User to Cafe",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userId\": \"{{user_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/cafes/:id/users",
+							"host": ["{{base_url}}"],
+							"path": ["api", "cafes", ":id", "users"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{cafe_id}}"
+								}
+							]
+						},
+						"description": "Add a user to a cafe. Manager can only add users to their cafe. Super Admin can add to any cafe. Cannot add manager (use assign-manager instead)."
+					},
+					"response": []
+				},
+				{
+					"name": "Remove User from Cafe",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/cafes/:id/users/:userId",
+							"host": ["{{base_url}}"],
+							"path": ["api", "cafes", ":id", "users", ":userId"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{cafe_id}}"
+								},
+								{
+									"key": "userId",
+									"value": "{{user_id}}"
+								}
+							]
+						},
+						"description": "Remove user from cafe. Manager can only remove users from their cafe. Cannot remove manager (use change-manager instead)."
+					},
+					"response": []
+				},
+				{
+					"name": "List Cafe Users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/cafes/:id/users?role=receptionist&status=active",
+							"host": ["{{base_url}}"],
+							"path": ["api", "cafes", ":id", "users"],
+							"query": [
+								{
+									"key": "role",
+									"value": "receptionist",
+									"description": "Filter by role (optional)"
+								},
+								{
+									"key": "status",
+									"value": "active",
+									"description": "Filter by status: active/inactive (optional)"
+								}
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{cafe_id}}"
+								}
+							]
+						},
+						"description": "List all users in a cafe. Manager can only view users in their cafe. Super Admin can view any cafe. Can filter by role and status."
+					},
+					"response": []
+				}
+			],
+			"description": "Cafe user management endpoints"
+		},
+		{
+			"name": "Cafe Settings",
+			"item": [
+				{
+					"name": "Get Cafe Settings",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/cafes/:id/settings",
+							"host": ["{{base_url}}"],
+							"path": ["api", "cafes", ":id", "settings"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{cafe_id}}"
+								}
+							]
+						},
+						"description": "Get cafe settings (tax percentage). Manager and Receptionist can view their cafe settings."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Cafe Settings",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"taxPercentage\": 8\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/cafes/:id/settings",
+							"host": ["{{base_url}}"],
+							"path": ["api", "cafes", ":id", "settings"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{cafe_id}}"
+								}
+							]
+						},
+						"description": "Update cafe settings (tax percentage). Manager only. Tax changes do NOT affect already approved orders."
+					},
+					"response": []
+				}
+			],
+			"description": "Cafe settings endpoints"
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "cafe_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
