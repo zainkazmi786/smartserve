@@ -3,6 +3,7 @@ import {
   createMenu,
   listMenus,
   getActiveMenu,
+  getTodayMenus,
   getMenu,
   updateMenu,
   activateMenu,
@@ -55,6 +56,18 @@ router.get(
   authenticate,
   requireRole("customer", "manager", "receptionist"),
   getActiveMenu
+);
+
+/**
+ * @route   GET /api/menus/today
+ * @desc    Get all menus for today (with time slots for today + manually activated)
+ * @access  Private (Customer, Manager, Receptionist)
+ */
+router.get(
+  "/today",
+  authenticate,
+  requireRole("customer", "manager", "receptionist"),
+  getTodayMenus
 );
 
 /**

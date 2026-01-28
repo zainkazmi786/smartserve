@@ -17,7 +17,7 @@ import { requireRole } from "../middleware/rbac.js";
 
 const router = express.Router();
 
-// ============ CAFE MANAGEMENT ============
+// ============ CAFE MANAGEMENT ============ 
 
 /**
  * @route   POST /api/cafes
@@ -31,7 +31,7 @@ router.post("/", authenticate, requireRole("superadmin"), createCafe);
  * @desc    List cafes
  * @access  Private (Super Admin: all, Manager: own cafe)
  */
-router.get("/", authenticate, requireRole("superadmin", "manager"), listCafes);
+router.get("/",  listCafes);
 
 /**
  * @route   GET /api/cafes/:id
@@ -105,7 +105,6 @@ router.delete(
 router.get(
   "/:id/users",
   authenticate,
-  requireRole("manager", "superadmin"),
   listCafeUsers
 );
 

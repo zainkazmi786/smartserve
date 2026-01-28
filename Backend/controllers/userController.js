@@ -10,10 +10,12 @@ import { hashPassword, comparePassword } from "../utils/passwordUtils.js";
 /**
  * POST /api/users/login
  * Login user
+ * @body for - Optional. If "customer", only users with role "customer" can login (used by Food-Ordering-App).
+ *        Omit for Cafe Management Portal (manager, receptionist, superadmin).
  */
 export const login = async (req, res) => {
   try {
-    const { email, phone, password } = req.body;
+    const { email, phone, password, for: forClient } = req.body;
 
     if (!password) {
       return res.status(400).json({
@@ -66,6 +68,17 @@ export const login = async (req, res) => {
         success: false,
         message: "Invalid credentials",
       });
+    }
+
+    // When for=customer (Food-Ordering-App), only customer role can login
+    if (forClient === "customer") {
+      const roleName = user.role?.name;
+      if (roleName !== "customer") {
+        return res.status(403).json({
+          success: false,
+          message: "Only customer accounts can sign in here. Please use the Cafe Management Portal for staff access.",
+        });
+      }
     }
 
     // Determine active cafe (first cafe for staff, or selected one)
@@ -375,6 +388,155 @@ export const updateProfile = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to update profile",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * PUT /api/users/profile/password
+ * Change user password
+ */
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user._id;
+
+    // Validation
+    if (!currentPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Current password is required",
+      });
+    }
+
+    if (!newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "New password is required",
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "New password must be at least 6 characters long",
+      });
+    }
+
+    // Get user with password
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Verify current password
+    if (!user.password) {
+      return res.status(401).json({
+        success: false,
+        message: "Current password is incorrect",
+      });
+    }
+
+    const isCurrentPasswordValid = await comparePassword(currentPassword, user.password);
+    if (!isCurrentPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: "Current password is incorrect",
+      });
+    }
+
+    // Check if new password is different
+    const isSamePassword = await comparePassword(newPassword, user.password);
+    if (isSamePassword) {
+      return res.status(400).json({
+        success: false,
+        message: "New password must be different from current password",
+      });
+    }
+
+    // Hash new password
+    const hashedNewPassword = await hashPassword(newPassword);
+
+    // Update password
+    user.password = hashedNewPassword;
+    await user.save();
+
+    // Get updated user without password
+    const updatedUser = await User.findById(userId)
+      .populate("role")
+      .populate("cafes")
+      .select("-password");
+
+    res.json({
+      success: true,
+      message: "Password updated successfully",
+      data: { user: updatedUser },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to update password",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * POST /api/users/profile/picture
+ * Upload profile picture
+ */
+export const uploadProfilePicture = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Check if file was uploaded (middleware should handle this, but double-check)
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Profile picture is required",
+      });
+    }
+
+    // Get Cloudinary URL from uploaded file
+    const imageUrl = req.file.path; // Cloudinary returns full URL in path
+
+    // Update user profile picture
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { profilePicture: imageUrl },
+      {
+        new: true,
+        runValidators: true,
+      }
+    )
+      .populate("role")
+      .populate("cafes")
+      .select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Profile picture updated successfully",
+      data: {
+        user,
+        imageUrl: imageUrl, // Full Cloudinary URL
+      },
+    });
+  } catch (error) {
+    console.error("Upload profile picture error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to upload profile picture. Please try again.",
       error: error.message,
     });
   }

@@ -7,6 +7,7 @@ import cors from "cors";
 import mongoose from "mongoose";
 import { createServer } from "http";
 import { Server } from "socket.io";
+import { networkInterfaces } from "os";
 import userRoutes from "./routes/userRoutes.js";
 import cafeRoutes from "./routes/cafeRoutes.js";
 import menuItemRoutes from "./routes/menuItemRoutes.js";
@@ -27,6 +28,23 @@ const io = new Server(httpServer, {
 });
 
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || "0.0.0.0"; // Listen on all network interfaces
+
+// Get local IP address for display
+const getLocalIP = () => {
+  const nets = networkInterfaces();
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name] || []) {
+      // Skip internal (i.e. 127.0.0.1) and non-IPv4 addresses
+      if (net.family === "IPv4" && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+  return "localhost";
+};
+
+const localIP = getLocalIP();
 
 // Middleware
 app.use(cors());
@@ -119,7 +137,15 @@ mongoose.connection.once("open", async () => {
 });
 
 // Start server
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, HOST, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
   console.log(`📡 Socket.io server ready`);
+  console.log(`\n📍 Access your server from:`);
+  console.log(`   Local:    http://localhost:${PORT}`);
+  console.log(`   Network:  http://${localIP}:${PORT}`);
+  console.log(`   External: http://<your-public-ip>:${PORT} (if port forwarded)`);
+  console.log(`\n💡 To access from mobile device:`);
+  console.log(`   1. Make sure your mobile device is on the same WiFi network`);
+  console.log(`   2. Use: http://${localIP}:${PORT}`);
+  console.log(`   3. Or configure port forwarding for external access\n`);
 });

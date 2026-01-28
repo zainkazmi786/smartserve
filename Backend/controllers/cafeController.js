@@ -449,10 +449,16 @@ export const changeManager = async (req, res) => {
  */
 export const listCafes = async (req, res) => {
   try {
-    const currentUser = req.user;
+    const currentUser = req.user; // May be undefined for unauthenticated requests
     let cafes;
 
-    if (currentUser.role?.name === "superadmin") {
+    // If no user (public access for registration), return all cafes
+    if (!currentUser) {
+      cafes = await Cafe.find()
+        .populate("linkedManager", "name email phone role")
+        .sort({ createdAt: -1 })
+        .lean();
+    } else if (currentUser.role?.name === "superadmin") {
       // Super admin sees all cafes
       cafes = await Cafe.find()
         .populate("linkedManager", "name email phone role")
@@ -471,10 +477,12 @@ export const listCafes = async (req, res) => {
         .populate("linkedManager", "name email phone role")
         .lean();
     } else {
-      return res.status(403).json({
-        success: false,
-        message: "Access denied",
-      });
+      // For other authenticated users (receptionist, customer), return all cafes
+      // This allows customers to see cafes for registration
+      cafes = await Cafe.find()
+        .populate("linkedManager", "name email phone role")
+        .sort({ createdAt: -1 })
+        .lean();
     }
 
     // Add isActive status

@@ -6,6 +6,7 @@ const userSchema = new mongoose.Schema(
     email: { type: String, unique: true, sparse: true },
     phone: { type: String, unique: true, sparse: true },
     password: { type: String },
+    profilePicture: { type: String }, // Cloudinary URL
     status: { type: String, enum: ["active", "inactive"], default: "active" },
 
     role: {

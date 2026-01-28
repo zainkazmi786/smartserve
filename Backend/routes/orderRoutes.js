@@ -9,6 +9,7 @@ import {
   markOrderReceived,
   getOrder,
   getOrderHistory,
+  getMyActiveOrder,
   getActiveKitchenOrder,
   getKitchenQueue,
   getNextKitchenOrder,
@@ -22,13 +23,13 @@ const router = express.Router();
 /**
  * @route   POST /api/orders
  * @desc    Create order from cart (Customer)
- * @access  Private (Customer)
+ * @access  Private (Customer, or Manager/Receptionist for testing or staff ordering)
  * @note    Can use multipart/form-data for receipt upload or application/json with receipt URL
  */
 router.post(
   "/",
   authenticate,
-  requireRole("customer"),
+  requireRole("customer", "manager", "receptionist"),
   uploadReceiptImage, // Middleware handles receipt upload if file present, otherwise passes through
   createOrder
 );
@@ -36,13 +37,13 @@ router.post(
 /**
  * @route   POST /api/orders/:id/upload-receipt
  * @desc    Upload/re-upload receipt (Customer)
- * @access  Private (Customer)
+ * @access  Private (Customer, or Manager/Receptionist for testing)
  * @note    Can use multipart/form-data for receipt upload or application/json with receipt URL
  */
 router.post(
   "/:id/upload-receipt",
   authenticate,
-  requireRole("customer"),
+  requireRole("customer", "manager", "receptionist"),
   uploadReceiptImage, // Middleware handles receipt upload if file present, otherwise passes through
   uploadReceipt
 );
@@ -78,9 +79,16 @@ router.post("/:id/mark-ready", authenticate, markOrderReady);
 /**
  * @route   POST /api/orders/:id/mark-received
  * @desc    Mark order as received (Customer)
- * @access  Private (Customer)
+ * @access  Private (Customer, or Manager/Receptionist for testing)
  */
-router.post("/:id/mark-received", authenticate, requireRole("customer"), markOrderReceived);
+router.post("/:id/mark-received", authenticate, requireRole("customer", "manager", "receptionist"), markOrderReceived);
+
+/**
+ * @route   GET /api/orders/me/active
+ * @desc    Get customer's current incomplete order (for block new order & FAB)
+ * @access  Private (Customer, or Manager/Receptionist for testing)
+ */
+router.get("/me/active", authenticate, requireRole("customer", "manager", "receptionist"), getMyActiveOrder);
 
 /**
  * @route   GET /api/orders/:id

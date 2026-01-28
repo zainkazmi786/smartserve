@@ -162,8 +162,9 @@ export default function Menus() {
   // Activate menu mutation
   const activateMutation = useMutation({
     mutationFn: activateMenu,
-    onSuccess: () => {
+    onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({ queryKey: ['menus'] });
+      // The backend message already includes time slot warning if applicable
       toast({
         title: 'Menu Activated',
         description: 'Menu has been activated successfully.',
@@ -181,8 +182,9 @@ export default function Menus() {
   // Deactivate menu mutation
   const deactivateMutation = useMutation({
     mutationFn: deactivateMenu,
-    onSuccess: () => {
+    onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({ queryKey: ['menus'] });
+      // The backend message already includes time slot warning if applicable
       toast({
         title: 'Menu Deactivated',
         description: 'Menu has been deactivated successfully.',
@@ -405,10 +407,26 @@ export default function Menus() {
   };
 
   const handleToggleStatus = (menu: Menu) => {
+    const hasTimeSlots = menu.timeSlots && menu.timeSlots.length > 0;
+    
     if (menu.status === 'active') {
-      deactivateMutation.mutate(menu._id);
+      // Deactivating a menu
+      const message = hasTimeSlots
+        ? `Are you sure you want to deactivate "${menu.name}"? Time slots will be removed.`
+        : `Are you sure you want to deactivate "${menu.name}"?`;
+      
+      if (window.confirm(message)) {
+        deactivateMutation.mutate(menu._id);
+      }
     } else {
-      activateMutation.mutate(menu._id);
+      // Activating a menu
+      const message = hasTimeSlots
+        ? `Are you sure you want to activate "${menu.name}"? Time slots will be removed as the menu will be manually controlled.`
+        : `Are you sure you want to activate "${menu.name}"?`;
+      
+      if (window.confirm(message)) {
+        activateMutation.mutate(menu._id);
+      }
     }
   };
 

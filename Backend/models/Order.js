@@ -8,6 +8,12 @@ const orderItemSchema = new mongoose.Schema({
   },
   quantity: { type: Number, default: 1 },
 
+  portionSize: {
+    type: String,
+    enum: ["half", "full"],
+    default: "full",
+  },
+
   cookingOverrideType: {
     type: String,
     enum: ["short", "long"],
@@ -43,6 +49,10 @@ const orderSchema = new mongoose.Schema(
     approvedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+    },
+
+    orderNumber: {
+      type: String,
     },
 
     status: {

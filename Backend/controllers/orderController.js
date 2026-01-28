@@ -44,6 +44,20 @@ const isValidStatusTransition = (currentStatus, newStatus) => {
   return validTransitions[currentStatus]?.includes(newStatus) || false;
 };
 
+/**
+ * Generate unique order number (e.g. ORD-A3X9K2)
+ */
+const generateUniqueOrderNumber = async () => {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let result = "ORD-";
+  for (let i = 0; i < 6; i++) {
+    result += chars[Math.floor(Math.random() * chars.length)];
+  }
+  const exists = await Order.findOne({ orderNumber: result });
+  if (exists) return generateUniqueOrderNumber();
+  return result;
+};
+
 // ============ ORDER CREATION ============
 
 /**
@@ -192,12 +206,20 @@ export const createOrder = async (req, res) => {
     let subtotal = 0;
 
     for (const cartItem of items) {
-      const { itemId, quantity, cookingOverrideType } = cartItem;
+      const { itemId, quantity, cookingOverrideType, portionSize } = cartItem;
+      const ps = portionSize || "full";
 
       if (!itemId || !quantity || quantity < 1) {
         return res.status(400).json({
           success: false,
           message: "Each item must have itemId and quantity >= 1",
+        });
+      }
+
+      if (!["half", "full"].includes(ps)) {
+        return res.status(400).json({
+          success: false,
+          message: "portionSize must be 'half' or 'full'",
         });
       }
 
@@ -244,12 +266,14 @@ export const createOrder = async (req, res) => {
         });
       }
 
-      const itemTotal = menuItem.price * quantity;
+      const unitPrice = ps === "half" ? menuItem.price / 2 : menuItem.price;
+      const itemTotal = unitPrice * quantity;
       subtotal += itemTotal;
 
       orderItems.push({
         item: itemId,
         quantity,
+        portionSize: ps,
         cookingOverrideType: cookingOverrideType || undefined,
       });
     }
@@ -263,8 +287,11 @@ export const createOrder = async (req, res) => {
     const initialStatus =
       paymentMethod === "receipt" ? "payment_uploaded" : "cash_selected";
 
+    const orderNumber = await generateUniqueOrderNumber();
+
     // Create order
     const order = new Order({
+      orderNumber,
       cafe: cafeId,
       createdBy: currentUser._id,
       status: initialStatus,
@@ -849,6 +876,51 @@ export const getOrder = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to get order",
+      error: error.message,
+    });
+  }
+};
+
+// ============ MY ACTIVE ORDER (Customer) ============
+
+/**
+ * GET /api/orders/me/active
+ * Get customer's current incomplete order (for blocking new orders & FAB)
+ */
+export const getMyActiveOrder = async (req, res) => {
+  try {
+    const currentUser = req.user;
+
+    const order = await Order.findOne({
+      createdBy: currentUser._id,
+      status: {
+        $in: [
+          "payment_uploaded",
+          "cash_selected",
+          "approved",
+          "preparing",
+          "ready",
+          "disapproved",
+        ],
+      },
+    })
+      .sort({ createdAt: -1 })
+      .limit(1)
+      .populate([
+        { path: "createdBy", select: "name email phone" },
+        { path: "cafe", select: "name" },
+        { path: "items.item", select: "name price type" },
+      ]);
+
+    res.json({
+      success: true,
+      data: { order: order || null },
+    });
+  } catch (error) {
+    console.error("Get my active order error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get active order",
       error: error.message,
     });
   }

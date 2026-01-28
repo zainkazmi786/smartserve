@@ -135,6 +135,133 @@ export const listMenus = async (req, res) => {
 };
 
 /**
+ * GET /api/menus/today
+ * Get all menus for today (menus with time slots for today + manually activated menus)
+ * Returns menus with isCurrentlyActive flag
+ */
+export const getTodayMenus = async (req, res) => {
+  try {
+    const cafeId = req.activeCafeId;
+
+    if (!cafeId) {
+      return res.status(400).json({
+        success: false,
+        message: "Active cafe is required",
+      });
+    }
+
+    const now = new Date();
+    const currentDay = now.getDay(); // 0 = Sunday, 6 = Saturday
+    const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now
+      .getMinutes()
+      .toString()
+      .padStart(2, "0")}`;
+
+    // Get all menus with time slots (only inactive menus use time slots)
+    const allMenusWithSlots = await Menu.find({
+      cafe: cafeId,
+      status: "inactive", // Only inactive menus use time slots
+      timeSlots: { $exists: true, $ne: [] },
+    }).populate("items");
+
+    // Get all manually activated menus (status: "active" - they ignore time slots)
+    const manuallyActivatedMenus = await Menu.find({
+      cafe: cafeId,
+      status: "active",
+    }).populate("items");
+
+    // Combine menus and use Map to avoid duplicates
+    const menuMap = new Map();
+
+    // Process menus with time slots - include ALL that have slots for today
+    // (both currently active and inactive ones with today's slots)
+    for (const menu of allMenusWithSlots) {
+      // Check if menu has time slots for today
+      const hasTodaySlot = menu.timeSlots && menu.timeSlots.some(
+        (slot) => slot.dayOfWeek === currentDay
+      );
+
+      if (hasTodaySlot) {
+        menuMap.set(menu._id.toString(), menu);
+      }
+    }
+
+    // Add manually activated menus (they should always be included)
+    for (const menu of manuallyActivatedMenus) {
+      menuMap.set(menu._id.toString(), menu);
+    }
+
+    // Process each menu to determine if it's currently active
+    const processedMenus = [];
+    for (const menu of menuMap.values()) {
+      let isCurrentlyActive = false;
+
+      // Priority 1: Check if manually activated (status: "active")
+      // Manually activated menus ignore time slots
+      if (menu.status === "active") {
+        isCurrentlyActive = true;
+      } else {
+        // Priority 2: Check if has active time slot right now (only for inactive menus)
+        // Only check time slots for menus with status: "inactive"
+        if (menu.timeSlots && menu.timeSlots.length > 0) {
+          for (const slot of menu.timeSlots) {
+            // Check if slot is for today and currently active
+            if (
+              slot.dayOfWeek === currentDay &&
+              currentTime >= slot.startTime &&
+              currentTime <= slot.endTime
+            ) {
+              isCurrentlyActive = true;
+              break; // Found active slot, no need to check more
+            }
+          }
+        }
+      }
+
+      // Filter only active items
+      const activeItems = menu.items.filter((item) => item.isActive !== false);
+
+      processedMenus.push({
+        _id: menu._id,
+        name: menu.name,
+        isCurrentlyActive,
+        timeSlots: menu.timeSlots || [],
+        status: menu.status,
+        items: activeItems,
+        createdAt: menu.createdAt,
+        updatedAt: menu.updatedAt,
+      });
+    }
+
+    // Sort: active menus first, then others
+    const menusArray = processedMenus;
+    menusArray.sort((a, b) => {
+      // Active menus first
+      if (a.isCurrentlyActive && !b.isCurrentlyActive) return -1;
+      if (!a.isCurrentlyActive && b.isCurrentlyActive) return 1;
+      // Then sort by name
+      return a.name.localeCompare(b.name);
+    });
+
+    res.json({
+      success: true,
+      data: {
+        menus: menusArray,
+        currentTime,
+        currentDay,
+      },
+    });
+  } catch (error) {
+    console.error("Get today menus error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch today's menus",
+      error: error.message,
+    });
+  }
+};
+
+/**
  * GET /api/menus/active
  * Get active menu (Customer view)
  */
@@ -371,20 +498,26 @@ export const activateMenu = async (req, res) => {
         });
       }
 
-      // Deactivate all other active menus for this cafe
-      await Menu.updateMany(
-        {
-          cafe: cafeId,
-          _id: { $ne: id },
-          status: "active",
-        },
-        {
-          $set: { status: "inactive" },
-        }
-      ).session(session);
+      // Check how many menus are currently active
+      const activeMenusCount = await Menu.countDocuments({
+        cafe: cafeId,
+        status: "active",
+      }).session(session);
 
-      // Activate this menu
+      // If already 2 active menus, prevent activation
+      if (activeMenusCount >= 2) {
+        await session.abortTransaction();
+        return res.status(400).json({
+          success: false,
+          message: "Only 2 menus can be active at a time. Please deactivate one menu first.",
+        });
+      }
+
+      // Activate this menu manually
+      // Clear time slots since menu is now manually controlled
+      const hadTimeSlots = menu.timeSlots && menu.timeSlots.length > 0;
       menu.status = "active";
+      menu.timeSlots = []; // Clear time slots
       await menu.save({ session });
 
       await session.commitTransaction();
@@ -395,7 +528,9 @@ export const activateMenu = async (req, res) => {
 
       res.json({
         success: true,
-        message: "Menu activated successfully",
+        message: hadTimeSlots 
+          ? "Menu activated successfully. Time slots have been removed as the menu is now manually controlled."
+          : "Menu activated successfully",
         data: { menu },
       });
     } catch (error) {
@@ -435,7 +570,14 @@ export const deactivateMenu = async (req, res) => {
       });
     }
 
+    // Check if menu has time slots before deactivating
+    const hadTimeSlots = menu.timeSlots && menu.timeSlots.length > 0;
+    
     menu.status = "inactive";
+    // Clear time slots if they exist (menu was time-slot based)
+    if (hadTimeSlots) {
+      menu.timeSlots = [];
+    }
     await menu.save();
 
     await menu.populate("cafe", "name");
@@ -444,7 +586,9 @@ export const deactivateMenu = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Menu deactivated successfully",
+      message: hadTimeSlots
+        ? "Menu deactivated successfully. Time slots have been removed."
+        : "Menu deactivated successfully",
       data: { menu },
     });
   } catch (error) {
@@ -710,6 +854,14 @@ export const setTimeSlots = async (req, res) => {
       });
     }
 
+    // Cannot set time slots for manually activated menus
+    if (menu.status === "active") {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot set time slots for manually activated menu. Please deactivate the menu first.",
+      });
+    }
+
     // Validate time slot format
     for (const slot of timeSlots) {
       if (
@@ -744,14 +896,9 @@ export const setTimeSlots = async (req, res) => {
       }
     }
 
-    // Check for overlaps with other menus
-    const overlapCheck = await checkTimeSlotOverlap(cafeId, timeSlots, id);
-    if (overlapCheck.overlap) {
-      return res.status(400).json({
-        success: false,
-        message: overlapCheck.message,
-      });
-    }
+    // Allow overlapping time slots - we now support up to 2 active menus
+    // Overlap check removed to allow multiple menus with overlapping time slots
+    // The system will use priority to determine which menu is active when slots overlap
 
     // Update time slots
     menu.timeSlots = timeSlots;

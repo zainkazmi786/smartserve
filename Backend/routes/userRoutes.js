@@ -5,6 +5,8 @@ import {
   register,
   getProfile,
   updateProfile,
+  changePassword,
+  uploadProfilePicture,
   getUserCafes,
   switchActiveCafe,
   listUsers,
@@ -16,6 +18,7 @@ import {
 } from "../controllers/userController.js";
 import { authenticate } from "../middleware/auth.js";
 import { requireRole } from "../middleware/rbac.js";
+import { uploadProfilePicture as uploadProfilePictureMiddleware } from "../middleware/profilePictureUpload.js";
 
 const router = express.Router();
 
@@ -57,6 +60,20 @@ router.get("/profile", authenticate, getProfile);
  * @access  Private
  */
 router.put("/profile", authenticate, updateProfile);
+
+/**
+ * @route   PUT /api/users/profile/password
+ * @desc    Change user password
+ * @access  Private
+ */
+router.put("/profile/password", authenticate, changePassword);
+
+/**
+ * @route   POST /api/users/profile/picture
+ * @desc    Upload profile picture
+ * @access  Private
+ */
+router.post("/profile/picture", authenticate, uploadProfilePictureMiddleware, uploadProfilePicture);
 
 // ============ CAFE ASSOCIATION ROUTES ============
 
