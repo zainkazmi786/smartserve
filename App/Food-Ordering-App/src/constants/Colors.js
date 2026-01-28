@@ -1,0 +1,1 @@
+export default { primary: "#6F4E37", accent: "#ECB159" };
