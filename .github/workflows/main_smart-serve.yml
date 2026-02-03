@@ -48,9 +48,10 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.__clientidsecretname__ }}
-          tenant-id: ${{ secrets.__tenantidsecretname__ }}
-          subscription-id: ${{ secrets.__subscriptionidsecretname__ }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_47FF3CA3805D470DBA137DA894569A55 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_1E710FCEA58143BE902266D8A342CB00 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_02DB31DD1C564474B58CF8D81F899210 }}
+
 
       - name: Deploy Backend to Azure Web App
         uses: azure/webapps-deploy@v3
@@ -58,3 +59,4 @@ jobs:
           app-name: 'smart-serve'
           slot-name: 'Production'
           package: .
+
