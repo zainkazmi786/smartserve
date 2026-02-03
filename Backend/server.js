@@ -22,10 +22,17 @@ import User from "./models/User.js";
 
 const app = express();
 const httpServer = createServer(app);
+// CORS configuration for Socket.io
+// If CORS_ORIGINS is set, use it; otherwise allow all (for hybrid dev/prod setup)
+const socketCorsOrigins = process.env.CORS_ORIGINS 
+  ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
+  : "*"; // Allow all - set CORS_ORIGINS env var to restrict in production
+
 const io = new Server(httpServer, {
   cors: {
-    origin: "*", // Configure this based on your frontend URLs
+    origin: socketCorsOrigins === "*" ? "*" : socketCorsOrigins,
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
@@ -48,8 +55,16 @@ const getLocalIP = () => {
 
 const localIP = getLocalIP();
 
-// Middleware
-app.use(cors());
+// Middleware - CORS configuration
+// If CORS_ORIGINS is set, use it; otherwise allow all (for hybrid dev/prod setup)
+const corsOrigins = process.env.CORS_ORIGINS 
+  ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
+  : "*"; // Allow all - set CORS_ORIGINS env var to restrict in production
+
+app.use(cors({
+  origin: corsOrigins === "*" ? "*" : corsOrigins,
+  credentials: true,
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
