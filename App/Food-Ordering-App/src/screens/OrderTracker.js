@@ -4,7 +4,6 @@ import {
   Text,
   View,
   TouchableOpacity,
-  Alert,
   TextInput,
   ScrollView,
   Animated,
@@ -15,8 +14,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import ScreenWrapper from '../components/ScreenWrapper';
+import ReviewModal from '../components/ReviewModal';
 import { getOrder, markOrderReceived, cancelOrder, uploadReceipt } from '../services/apiService';
 import { useActiveOrder } from '../context/ActiveOrderContext';
+import { useSocket } from '../context/SocketContext';
+import { showError, showSuccess } from '../utils/toast';
 
 const POLL_INTERVAL_MS = 12000;
 
@@ -39,7 +41,9 @@ export default function OrderTracker({ route, navigation }) {
   const [cancelModal, setCancelModal] = useState(false);
   const [cancelNote, setCancelNote] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
   const { clearActiveOrder } = useActiveOrder();
+  const { addOrderStatusListener } = useSocket();
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const goToDashboard = useCallback(() => {
@@ -82,6 +86,19 @@ export default function OrderTracker({ route, navigation }) {
     return () => clearInterval(t);
   }, [orderId, order?.status, fetchOrder]);
 
+  // Real-time update via Socket.io: when order:status-changed for this orderId, refresh and show toast
+  useEffect(() => {
+    const unsubscribe = addOrderStatusListener((payload) => {
+      if (payload?.orderId !== orderId) return;
+      fetchOrder().then((updated) => {
+        if (updated?.status && payload?.message) {
+          showSuccess('Order update', payload.message);
+        }
+      });
+    });
+    return unsubscribe;
+  }, [orderId, addOrderStatusListener, fetchOrder]);
+
   const orderStatus = order ? mapApiStatusToStep(order.status) : 'waiting';
   const apiStatus = order?.status;
 
@@ -98,8 +115,9 @@ export default function OrderTracker({ route, navigation }) {
       clearActiveOrder();
       const o = await fetchOrder();
       setOrder(o || { ...order, status: 'received' });
+      setShowReviewModal(true);
     } catch (e) {
-      Alert.alert('Error', e.message || 'Could not mark as received.');
+      showError('Error', e.message || 'Could not mark as received.');
     }
   };
 
@@ -113,7 +131,7 @@ export default function OrderTracker({ route, navigation }) {
       const o = await fetchOrder();
       setOrder(o);
     } catch (e) {
-      Alert.alert('Error', e.message || 'Could not cancel order.');
+      showError('Error', e.message || 'Could not cancel order.');
     }
   };
 
@@ -121,7 +139,7 @@ export default function OrderTracker({ route, navigation }) {
     if (apiStatus !== 'disapproved') return;
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission denied', 'Photo access is required to upload receipt.');
+      showError('Permission denied', 'Photo access is required to upload receipt.');
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -135,7 +153,7 @@ export default function OrderTracker({ route, navigation }) {
       await uploadReceipt(orderId, result.assets[0].uri);
       await fetchOrder();
     } catch (e) {
-      Alert.alert('Error', e.message || 'Failed to upload receipt.');
+      showError('Error', e.message || 'Failed to upload receipt.');
     } finally {
       setUploading(false);
     }
@@ -290,10 +308,27 @@ export default function OrderTracker({ route, navigation }) {
           )}
 
           {orderStatus === 'received' && (
-            <TouchableOpacity style={styles.darkBtn} onPress={goToDashboard}>
-              <Text style={styles.darkBtnText}>Back to Home</Text>
-            </TouchableOpacity>
+            <>
+              {!order?.reviewedAt && (
+                <TouchableOpacity
+                  style={styles.reviewLink}
+                  onPress={() => setShowReviewModal(true)}
+                >
+                  <Text style={styles.reviewLinkText}>Rate this order</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={styles.darkBtn} onPress={goToDashboard}>
+                <Text style={styles.darkBtnText}>Back to Home</Text>
+              </TouchableOpacity>
+            </>
           )}
+
+          <ReviewModal
+            visible={showReviewModal && apiStatus === 'received' && !order?.reviewedAt}
+            onClose={() => setShowReviewModal(false)}
+            order={order}
+            onSubmitted={() => fetchOrder()}
+          />
 
           {apiStatus === 'cancelled' && (
             <TouchableOpacity style={styles.darkBtn} onPress={goToDashboard}>
@@ -378,4 +413,6 @@ const styles = StyleSheet.create({
   modalCancel: { flex: 1, padding: 16, borderRadius: 12, backgroundColor: '#F5F5F5', alignItems: 'center' },
   modalCancelText: { color: '#2D2926', fontWeight: '600' },
   modalConfirm: { flex: 1, padding: 16, borderRadius: 12, backgroundColor: '#C62828', alignItems: 'center' },
+  reviewLink: { alignSelf: 'center', marginTop: 12, paddingVertical: 8 },
+  reviewLinkText: { color: '#FFA500', fontSize: 15, fontWeight: '600' },
 });

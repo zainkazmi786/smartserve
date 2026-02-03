@@ -17,6 +17,8 @@ import reviewRoutes from "./routes/reviewRoutes.js";
 import { initializeQueues } from "./services/kitchenQueueManager.js";
 import { initializeNotifications, registerUserForNotifications } from "./services/notificationService.js";
 import { startKitchenTimeoutJob } from "./jobs/kitchenTimeoutJob.js";
+import { verifyToken } from "./utils/authUtils.js";
+import User from "./models/User.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -100,16 +102,25 @@ app.use((err, req, res, next) => {
 io.on("connection", (socket) => {
   console.log(`🔌 Client connected: ${socket.id}`);
 
-  // Handle user authentication and room joining
+  // Handle user authentication and room joining (verify JWT, then register rooms)
   socket.on("authenticate", async (data) => {
     try {
-      // In production, verify JWT token here
-      const { userId, userRole, cafeIds } = data;
-      
-      if (userId) {
-        registerUserForNotifications(socket, userId, userRole, cafeIds);
-        console.log(`✅ Socket authenticated: ${userId} (${userRole})`);
+      const token = socket.handshake?.auth?.token || data?.token;
+      if (!token) {
+        console.warn("Socket authenticate: no token");
+        return;
       }
+      const decoded = verifyToken(token);
+      const userId = decoded.userId;
+      const user = await User.findById(userId).populate("role").populate("cafes").select("-password");
+      if (!user) {
+        console.warn("Socket authenticate: user not found");
+        return;
+      }
+      const userRole = user.role?.name;
+      const cafeIds = (user.cafes || []).map((c) => c._id?.toString?.() || c);
+      registerUserForNotifications(socket, userId, userRole, cafeIds);
+      console.log(`✅ Socket authenticated: ${userId} (${userRole})`);
     } catch (error) {
       console.error("Socket authentication error:", error);
     }

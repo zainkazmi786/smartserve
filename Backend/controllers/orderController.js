@@ -125,9 +125,9 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    // Get active menu (same logic as getActiveMenu - handles time-slot based menus)
-    console.log("🔍 [Create Order] Looking for active menu for cafe:", cafeId);
-    
+    // Get ALL currently active menus (same logic as getTodayMenus - so items from any active menu are allowed)
+    console.log("🔍 [Create Order] Looking for active menus for cafe:", cafeId);
+
     const now = new Date();
     const currentDay = now.getDay(); // 0 = Sunday, 6 = Saturday
     const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now
@@ -135,57 +135,50 @@ export const createOrder = async (req, res) => {
       .toString()
       .padStart(2, "0")}`;
 
-    console.log("🔍 [Create Order] Current day:", currentDay, "Current time:", currentTime);
-
-    // Priority 1: Check for scheduled menu (time-slot based)
-    const allMenus = await Menu.find({
+    // Menus with time slots (inactive menus that use time slots)
+    const allMenusWithSlots = await Menu.find({
       cafe: cafeId,
-      status: { $ne: "deleted" },
+      status: "inactive",
       timeSlots: { $exists: true, $ne: [] },
     }).populate("items");
 
-    console.log("🔍 [Create Order] Found", allMenus.length, "menus with time slots");
+    // Manually activated menus
+    const manuallyActivatedMenus = await Menu.find({
+      cafe: cafeId,
+      status: "active",
+    }).populate("items");
 
-    let activeMenu = null;
-    let highestPriority = -1;
+    const menuMap = new Map();
+    for (const menu of allMenusWithSlots) {
+      const hasActiveSlot =
+        menu.timeSlots &&
+        menu.timeSlots.some(
+          (slot) =>
+            slot.dayOfWeek === currentDay &&
+            currentTime >= slot.startTime &&
+            currentTime <= slot.endTime
+        );
+      if (hasActiveSlot) menuMap.set(menu._id.toString(), menu);
+    }
+    for (const menu of manuallyActivatedMenus) {
+      menuMap.set(menu._id.toString(), menu);
+    }
 
-    // Check time slots
-    for (const menu of allMenus) {
-      for (const slot of menu.timeSlots) {
-        if (
-          slot.dayOfWeek === currentDay &&
-          currentTime >= slot.startTime &&
-          currentTime <= slot.endTime
-        ) {
-          const priority = slot.priority || 0;
-          console.log("🔍 [Create Order] Found matching time slot for menu:", menu._id, "priority:", priority);
-          if (!activeMenu || priority > highestPriority) {
-            activeMenu = menu;
-            highestPriority = priority;
-          }
+    // Build set of item IDs that are in any currently active menu (and item is active)
+    const allowedItemIds = new Set();
+    for (const menu of menuMap.values()) {
+      for (const item of menu.items || []) {
+        if (item && item.isActive !== false) {
+          allowedItemIds.add(item._id.toString());
         }
       }
     }
 
-    // Priority 2: If no scheduled menu, check manually activated menu
-    if (!activeMenu) {
-      console.log("🔍 [Create Order] No time-slot menu found, checking manually activated menu...");
-      activeMenu = await Menu.findOne({
-        cafe: cafeId,
-        status: "active",
-      }).populate("items");
-    }
-
-    if (!activeMenu) {
-      // Debug: Check all menus for this cafe
+    if (allowedItemIds.size === 0) {
       const allCafeMenus = await Menu.find({
         cafe: cafeId,
         status: { $ne: "deleted" },
       }).select("_id name status timeSlots");
-      
-      console.log("❌ [Create Order] No active menu found!");
-      console.log("❌ [Create Order] All menus for cafe:", JSON.stringify(allCafeMenus, null, 2));
-      
       return res.status(400).json({
         success: false,
         message: "No active menu available for this cafe",
@@ -194,12 +187,11 @@ export const createOrder = async (req, res) => {
           currentDay,
           currentTime,
           menusFound: allCafeMenus.length,
-          menus: allCafeMenus,
         },
       });
     }
 
-    console.log("✅ [Create Order] Active menu found:", activeMenu._id, "Status:", activeMenu.status);
+    console.log("✅ [Create Order] Active menus:", menuMap.size, "Allowed items:", allowedItemIds.size);
 
     // Validate and calculate pricing
     const orderItems = [];
@@ -247,11 +239,8 @@ export const createOrder = async (req, res) => {
         });
       }
 
-      // Verify item is in active menu
-      const isInMenu = activeMenu.items.some(
-        (item) => item._id.toString() === itemId.toString()
-      );
-      if (!isInMenu) {
+      // Verify item is in at least one currently active menu
+      if (!allowedItemIds.has(itemId.toString())) {
         return res.status(400).json({
           success: false,
           message: `Item ${menuItem.name} is not in the active menu`,
@@ -822,6 +811,63 @@ export const markOrderReceived = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to mark order received",
+      error: error.message,
+    });
+  }
+};
+
+// ============ MARK ORDER REVIEWED ============
+
+/**
+ * PATCH /api/orders/:id/reviewed
+ * Mark order as reviewed (Customer) - e.g. after closing review modal or submitting reviews
+ */
+export const markOrderReviewed = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const currentUser = req.user;
+
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    if (order.createdBy.toString() !== currentUser._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only mark your own orders as reviewed",
+      });
+    }
+
+    if (order.status !== "received") {
+      return res.status(400).json({
+        success: false,
+        message: "Only received orders can be marked as reviewed",
+      });
+    }
+
+    order.reviewedAt = new Date();
+    await order.save();
+
+    await order.populate([
+      { path: "createdBy", select: "name email phone" },
+      { path: "cafe", select: "name" },
+      { path: "items.item", select: "name" },
+    ]);
+
+    res.json({
+      success: true,
+      message: "Order marked as reviewed",
+      data: { order },
+    });
+  } catch (error) {
+    console.error("Mark order reviewed error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to mark order as reviewed",
       error: error.message,
     });
   }

@@ -5,6 +5,7 @@ import {
   register,
   getProfile,
   updateProfile,
+  updatePushToken,
   changePassword,
   uploadProfilePicture,
   getUserCafes,
@@ -60,6 +61,13 @@ router.get("/profile", authenticate, getProfile);
  * @access  Private
  */
 router.put("/profile", authenticate, updateProfile);
+
+/**
+ * @route   PUT /api/users/profile/push-token
+ * @desc    Update Expo Push Token for push notifications
+ * @access  Private
+ */
+router.put("/profile/push-token", authenticate, updatePushToken);
 
 /**
  * @route   PUT /api/users/profile/password

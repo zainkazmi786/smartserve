@@ -1,13 +1,16 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useEffect } from 'react';
+import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import * as Notifications from 'expo-notifications';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar, Platform, useWindowDimensions, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { CartProvider } from './src/context/CartContext';
 import { ActiveOrderProvider } from './src/context/ActiveOrderContext';
+import { SocketProvider, SocketConnector } from './src/context/SocketContext';
 import OrderTrackerFAB from './src/components/OrderTrackerFAB';
+import GlobalToast from './src/components/GlobalToast';
 
 // Screen Imports
 import SplashScreen from './src/screens/SplashScreen';
@@ -64,13 +67,33 @@ function MainTabNavigator() {
   );
 }
 
+// Handle notification tap: navigate to OrderTracker when user taps push notification
+function useNotificationResponse(navigationRef) {
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content?.data;
+      const orderId = data?.orderId;
+      if (orderId && navigationRef.current?.isReady()) {
+        navigationRef.current.navigate('OrderTracker', { orderId });
+      }
+    });
+    return () => sub.remove();
+  }, []);
+}
+
 export default function App() {
+  const navigationRef = useNavigationContainerRef();
+  useNotificationResponse(navigationRef);
+
   return (
     <CartProvider>
       <ActiveOrderProvider>
-        <NavigationContainer>
-          <StatusBar barStyle="dark-content" backgroundColor="#FFF8EE" />
-          <View style={{ flex: 1 }}>
+        <SocketProvider>
+          <SocketConnector />
+          <NavigationContainer ref={navigationRef}>
+            <StatusBar barStyle="dark-content" backgroundColor="#FFF8EE" />
+            <View style={{ flex: 1 }}>
             <Stack.Navigator
               initialRouteName="Splash"
               screenOptions={{
@@ -88,8 +111,10 @@ export default function App() {
               <Stack.Screen name="OrderTracker" component={OrderTracker} />
             </Stack.Navigator>
             <OrderTrackerFAB />
+            <GlobalToast />
           </View>
         </NavigationContainer>
+        </SocketProvider>
       </ActiveOrderProvider>
     </CartProvider>
   );

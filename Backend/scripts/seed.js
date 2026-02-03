@@ -116,35 +116,15 @@ const seedDatabase = async () => {
     console.log("  Password: SuperAdmin@123");
     console.log("");
 
-    // ============ CREATE MANAGER USER ============
-    console.log("Creating manager user...");
-    const managerPassword = await hashPassword("Manager@123");
-    
-    const manager = new User({
-      name: "Cafe Manager",
-      email: "manager@smartcafe.com",
-      phone: "+1234567891",
-      password: managerPassword,
-      role: managerRole._id,
-      cafes: [], // Will be updated after cafe creation
-      status: "active",
-    });
-
-    await manager.save();
-    console.log("✓ Created manager user");
-    console.log("  Email: manager@smartcafe.com");
-    console.log("  Password: Manager@123");
-    console.log("");
-
-    // ============ CREATE CAFE ============
+    // ============ CREATE CAFE FIRST ============
     console.log("Creating cafe...");
     const cafe = new Cafe({
-      name: "PAFIAST - STC",
-      email: "zainkazmi258@gmail.com",
+      name: "PAFIAST",
+      email: "pafiast@smartcafe.com",
       phone: "+923354055473",
-      linkedManager: manager._id,
+      // linkedManager will be set after manager creation
       settings: {
-        taxPercentage: 0, // 5% tax
+        taxPercentage: 0,
       },
     });
 
@@ -152,11 +132,31 @@ const seedDatabase = async () => {
     console.log("✓ Created cafe:", cafe.name);
     console.log("");
 
-    // ============ UPDATE MANAGER WITH CAFE ============
-    console.log("Linking manager to cafe...");
-    manager.cafes.push(cafe._id);
+    // ============ CREATE MANAGER USER WITH CAFE ============
+    console.log("Creating manager user...");
+    const managerPassword = await hashPassword("Manager@123");
+    
+    const manager = new User({
+      name: "Manager Pafiast",
+      email: "manager@pafiast.com",
+      phone: "+923354055473",
+      password: managerPassword,
+      role: managerRole._id,
+      cafes: [cafe._id], // Assign cafe immediately
+      status: "active",
+    });
+
     await manager.save();
-    console.log("✓ Manager linked to cafe");
+    console.log("✓ Created manager user");
+    console.log("  Email: manager@pafiast.com");
+    console.log("  Password: Manager@123");
+    console.log("");
+
+    // ============ LINK CAFE TO MANAGER ============
+    console.log("Linking cafe to manager...");
+    cafe.linkedManager = manager._id;
+    await cafe.save();
+    console.log("✓ Cafe linked to manager");
     console.log("");
 
     // ============ SUMMARY ============
@@ -170,8 +170,8 @@ const seedDatabase = async () => {
     console.log("  Super Admin:");
     console.log("    Email: superadmin@smartcafe.com");
     console.log("    Password: SuperAdmin@123");
-    console.log("\n  Manager:");
-    console.log("    Email: manager@smartcafe.com");
+    console.log("\n  Manager (PAFIAST):");
+    console.log("    Email: manager@pafiast.com");
     console.log("    Password: Manager@123");
     console.log("\n===================================\n");
 

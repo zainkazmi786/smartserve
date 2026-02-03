@@ -13,21 +13,24 @@ import {
   Platform,
   Animated,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import ScreenWrapper from '../components/ScreenWrapper';
-import { getProfile, updateProfile, changePassword, uploadProfilePicture } from '../services/apiService';
+import { getProfile, updateProfile, changePassword, uploadProfilePicture, updatePushToken } from '../services/apiService';
 import { Storage } from '../utils/storage';
 import { showError, showSuccess } from '../utils/toast';
 import { useActiveOrder } from '../context/ActiveOrderContext';
+import { useSocket } from '../context/SocketContext';
 
 export default function ProfileScreen() {
+  const navigation = useNavigation();
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [userPhone, setUserPhone] = useState('');
   const [loading, setLoading] = useState(true);
   const { fetchActiveOrder } = useActiveOrder();
+  const { disconnect } = useSocket();
 
   useFocusEffect(
     useCallback(() => {
@@ -245,6 +248,31 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleLogout = () => {
+    Alert.alert(
+      'Log out',
+      'Are you sure you want to log out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Log out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              disconnect();
+              await updatePushToken('').catch(() => {});
+              await Storage.clearAll();
+              navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
+            } catch (e) {
+              console.warn('Logout error:', e);
+              navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const savePassword = async () => {
     // Validation
     if (!passwords.current) {
@@ -376,6 +404,11 @@ export default function ProfileScreen() {
             icon="help-circle-outline"
             label="Contact Us / Help"
             onPress={() => setModalType('help')}
+          />
+          <MenuItem
+            icon="log-out-outline"
+            label="Log out"
+            onPress={handleLogout}
             last
           />
         </View>

@@ -21,6 +21,8 @@ const userSchema = new mongoose.Schema(
         ref: "Cafe",
       },
     ],
+
+    expoPushToken: { type: String, default: null },
   },
   { timestamps: true }
 );

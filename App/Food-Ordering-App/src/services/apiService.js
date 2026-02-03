@@ -77,12 +77,13 @@ const apiRequest = async (endpoint, options = {}) => {
 };
 
 /**
- * Get all cafes
+ * Get all cafes (public endpoint - no auth required for registration)
  */
 export const getCafes = async () => {
   try {
     const response = await apiRequest(API_ENDPOINTS.CAFES, {
       method: 'GET',
+      requireAuth: false, // Public endpoint - don't send auth token
     });
 
     if (response.success && response.data?.cafes) {
@@ -176,6 +177,19 @@ export const updateProfile = async (profileData) => {
     console.error('Error updating profile:', error);
     throw error;
   }
+};
+
+/**
+ * Update Expo Push Token for the logged-in user (for push notifications).
+ * Pass null or '' to clear the token (e.g. on logout).
+ */
+export const updatePushToken = async (expoPushToken) => {
+  const response = await apiRequest(API_ENDPOINTS.PROFILE_PUSH_TOKEN, {
+    method: 'PUT',
+    body: JSON.stringify({ expoPushToken: expoPushToken || null }),
+  });
+  if (response.success) return response.data;
+  throw new Error(response.message || 'Failed to update push token');
 };
 
 /**
@@ -438,12 +452,47 @@ export const uploadReceipt = async (orderId, receiptUri) => {
   throw new Error(data.message || 'Failed to upload receipt');
 };
 
+/**
+ * Mark order as reviewed (optional review flow done)
+ */
+export const markOrderReviewed = async (orderId) => {
+  const response = await apiRequest(`${API_ENDPOINTS.ORDERS}/${orderId}/reviewed`, {
+    method: 'PATCH',
+  });
+  if (response.success) return response.data;
+  throw new Error(response.message || 'Failed to mark order as reviewed');
+};
+
+/**
+ * Create a review for a menu item. Body: { item, rating, comment? }
+ */
+export const createReview = async (body) => {
+  const response = await apiRequest(API_ENDPOINTS.REVIEWS, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  if (response.success) return response.data;
+  throw new Error(response.message || 'Failed to create review');
+};
+
+/**
+ * List current user's reviews. Optional: { item, order, page, limit }
+ */
+export const listReviews = async (params = {}) => {
+  const q = new URLSearchParams(params).toString();
+  const url = q ? `${API_ENDPOINTS.REVIEWS}?${q}` : API_ENDPOINTS.REVIEWS;
+  const response = await apiRequest(url, { method: 'GET' });
+  if (response.success) return response.data;
+  throw new Error(response.message || 'Failed to fetch reviews');
+};
+
 export default {
   getCafes,
   registerUser,
   loginUser,
   getProfile,
   updateProfile,
+  updatePushToken,
   changePassword,
   uploadProfilePicture,
   getTodayMenus,
@@ -452,6 +501,9 @@ export default {
   getOrderHistory,
   getMyActiveOrder,
   markOrderReceived,
+  markOrderReviewed,
   cancelOrder,
   uploadReceipt,
+  createReview,
+  listReviews,
 };

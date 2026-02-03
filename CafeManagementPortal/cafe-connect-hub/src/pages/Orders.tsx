@@ -54,7 +54,7 @@ import {
   canDisapproveOrder,
   canCancelOrder,
   canMarkReady,
-  formatOrderNumber,
+  getOrderDisplayNumber,
 } from '@/utils/orderUtils';
 
 // Status badge component for backend statuses
@@ -233,7 +233,7 @@ export default function Orders() {
 
   // Filter orders
   const filteredOrders = orders.filter((order) => {
-    const orderNumber = formatOrderNumber(order._id);
+    const orderNumber = getOrderDisplayNumber(order);
     const customerName = order.createdBy.name.toLowerCase();
     const searchLower = searchQuery.toLowerCase();
 
@@ -428,7 +428,7 @@ export default function Orders() {
                   onClick={() => handleViewOrder(order)}
                 >
                   <TableCell className="font-semibold">
-                    {formatOrderNumber(order._id)}
+                    {getOrderDisplayNumber(order)}
                   </TableCell>
                   <TableCell>
                     <div>
@@ -543,7 +543,7 @@ export default function Orders() {
           {selectedOrder && (
             <>
               <DialogHeader>
-                <DialogTitle>Order {formatOrderNumber(selectedOrder._id)}</DialogTitle>
+                <DialogTitle>Order {getOrderDisplayNumber(selectedOrder)}</DialogTitle>
                 <DialogDescription>
                   <div className="flex items-center gap-2 mt-2">
                     <StatusBadge status={selectedOrder.status} />

@@ -480,66 +480,60 @@ export const activateMenu = async (req, res) => {
     const { id } = req.params;
     const cafeId = req.activeCafeId;
 
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
-    try {
-      const menu = await Menu.findOne({
-        _id: id,
-        cafe: cafeId,
-        status: { $ne: "deleted" },
-      }).session(session);
-
-      if (!menu) {
-        await session.abortTransaction();
-        return res.status(404).json({
-          success: false,
-          message: "Menu not found",
-        });
-      }
-
-      // Check how many menus are currently active
-      const activeMenusCount = await Menu.countDocuments({
-        cafe: cafeId,
-        status: "active",
-      }).session(session);
-
-      // If already 2 active menus, prevent activation
-      if (activeMenusCount >= 2) {
-        await session.abortTransaction();
-        return res.status(400).json({
-          success: false,
-          message: "Only 2 menus can be active at a time. Please deactivate one menu first.",
-        });
-      }
-
-      // Activate this menu manually
-      // Clear time slots since menu is now manually controlled
-      const hadTimeSlots = menu.timeSlots && menu.timeSlots.length > 0;
-      menu.status = "active";
-      menu.timeSlots = []; // Clear time slots
-      await menu.save({ session });
-
-      await session.commitTransaction();
-
-      await menu.populate("cafe", "name");
-      await menu.populate("items");
-      await menu.populate("createdBy", "name");
-
-      res.json({
-        success: true,
-        message: hadTimeSlots 
-          ? "Menu activated successfully. Time slots have been removed as the menu is now manually controlled."
-          : "Menu activated successfully",
-        data: { menu },
+    if (!cafeId) {
+      return res.status(400).json({
+        success: false,
+        message: "Active cafe is required",
       });
-    } catch (error) {
-      await session.abortTransaction();
-      throw error;
-    } finally {
-      session.endSession();
     }
+
+    const menu = await Menu.findOne({
+      _id: id,
+      cafe: cafeId,
+      status: { $ne: "deleted" },
+    });
+
+    if (!menu) {
+      return res.status(404).json({
+        success: false,
+        message: "Menu not found",
+      });
+    }
+
+    // Check how many menus are currently active
+    const activeMenusCount = await Menu.countDocuments({
+      cafe: cafeId,
+      status: "active",
+    });
+
+    // If already 2 active menus, prevent activation
+    if (activeMenusCount >= 2) {
+      return res.status(400).json({
+        success: false,
+        message: "Only 2 menus can be active at a time. Please deactivate one menu first.",
+      });
+    }
+
+    // Activate this menu manually
+    // Clear time slots since menu is now manually controlled
+    const hadTimeSlots = menu.timeSlots && menu.timeSlots.length > 0;
+    menu.status = "active";
+    menu.timeSlots = []; // Clear time slots
+    await menu.save();
+
+    await menu.populate("cafe", "name");
+    await menu.populate("items");
+    await menu.populate("createdBy", "name");
+
+    res.json({
+      success: true,
+      message: hadTimeSlots 
+        ? "Menu activated successfully. Time slots have been removed as the menu is now manually controlled."
+        : "Menu activated successfully",
+      data: { menu },
+    });
   } catch (error) {
+    console.error("Activate menu error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to activate menu",

@@ -15,7 +15,7 @@ import {
   Order as BackendOrder,
 } from '@/services/orderService';
 import { initializeSocket, subscribeToKitchenUpdates, disconnectSocket } from '@/services/socketService';
-import { formatOrderNumber } from '@/utils/orderUtils';
+import { getOrderDisplayNumber } from '@/utils/orderUtils';
 import { AnalogCountdownTimer } from '@/components/kitchen/AnalogCountdownTimer';
 
 export default function Kitchen() {
@@ -268,7 +268,7 @@ export default function Kitchen() {
                   <div className="flex items-start justify-between border-b pb-4 mb-4 flex-shrink-0 relative">
                     <div>
                       <h1 className="text-5xl font-bold mb-2">
-                        {formatOrderNumber(activeOrder._id)}
+                        {getOrderDisplayNumber(activeOrder)}
                       </h1>
                       <div className="space-y-1">
                         <p className="text-2xl font-medium">{activeOrder.createdBy.name}</p>
@@ -449,7 +449,7 @@ export default function Kitchen() {
                                 !isActive && !isLongOrder && 'text-foreground'
                               )}
                             >
-                              {formatOrderNumber(order._id)}
+                              {getOrderDisplayNumber(order)}
                             </p>
                             <div className="flex items-center gap-1">
                               {isLongOrder && (

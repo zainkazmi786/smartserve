@@ -251,12 +251,24 @@ export const assignManager = async (req, res) => {
       });
     }
 
-    // Check if manager already has a cafe
+    // Check if manager already has a cafe (and verify bidirectional link)
     if (user.cafes && user.cafes.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Manager is already assigned to a cafe",
-      });
+      // Check if the manager's cafe actually has them as linkedManager
+      const managerCafeId = user.cafes[0].toString();
+      const managerCafe = await Cafe.findById(managerCafeId);
+      
+      // If the cafe has this manager as linkedManager, they're truly assigned
+      if (managerCafe && managerCafe.linkedManager && managerCafe.linkedManager.toString() === userId) {
+        return res.status(400).json({
+          success: false,
+          message: "Manager is already assigned to a cafe",
+        });
+      }
+      
+      // Otherwise, it's an orphaned reference - clean it up in memory
+      // Don't save yet - we'll assign the new cafe and save together
+      console.log(`Cleaning up orphaned cafe reference for manager ${userId}`);
+      user.cafes = [];
     }
 
     // Store old manager ID before making changes
@@ -364,14 +376,30 @@ export const changeManager = async (req, res) => {
       });
     }
 
-    // Check if new manager already has a cafe
+    // Check if new manager already has a cafe (and verify bidirectional link)
     if (newManager.cafes && newManager.cafes.length > 0) {
       const existingCafeId = newManager.cafes[0].toString();
-      if (existingCafeId !== id) {
-        return res.status(400).json({
-          success: false,
-          message: "Manager is already assigned to another cafe",
-        });
+      
+      // If trying to assign to the same cafe, that's fine (might be fixing inconsistency)
+      if (existingCafeId === id) {
+        // Verify the cafe actually has this manager - if not, it's an orphaned reference
+        if (!cafe.linkedManager || cafe.linkedManager.toString() !== userId) {
+          // Orphaned reference - will be fixed when we assign below
+          console.log(`Fixing orphaned cafe reference for manager ${userId}`);
+        }
+      } else {
+        // Different cafe - check if that cafe actually has this manager as linkedManager
+        const existingCafe = await Cafe.findById(existingCafeId);
+        if (existingCafe && existingCafe.linkedManager && existingCafe.linkedManager.toString() === userId) {
+          return res.status(400).json({
+            success: false,
+            message: "Manager is already assigned to another cafe",
+          });
+        }
+        // Otherwise, it's an orphaned reference - clean it up in memory
+        // Don't save yet - we'll assign the new cafe and save together
+        console.log(`Cleaning up orphaned cafe reference for manager ${userId}`);
+        newManager.cafes = [];
       }
     }
 

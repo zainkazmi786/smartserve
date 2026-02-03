@@ -48,6 +48,7 @@ export interface AuditLog {
 
 export interface Order {
   _id: string;
+  orderNumber?: string;
   cafe: {
     _id: string;
     name: string;

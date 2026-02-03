@@ -74,9 +74,17 @@ export function canMarkReady(order: BackendOrder): boolean {
 }
 
 /**
- * Format order number from order ID
+ * Format order number from order ID (fallback when backend orderNumber is missing)
  */
 export function formatOrderNumber(orderId: string): string {
   // Use last 6 characters of ID for display
   return `ORD-${orderId.slice(-6).toUpperCase()}`;
+}
+
+/**
+ * Display order number: use backend orderNumber when present, else derive from _id.
+ * Use this so app and manager portal show the same order identifier.
+ */
+export function getOrderDisplayNumber(order: { _id: string; orderNumber?: string | null }): string {
+  return order.orderNumber ?? formatOrderNumber(order._id);
 }

@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
-  Alert,
   Dimensions,
   Platform,
   ActivityIndicator,
@@ -17,6 +16,7 @@ import ScreenWrapper from '../components/ScreenWrapper';
 import { useCart } from '../context/CartContext';
 import { useActiveOrder } from '../context/ActiveOrderContext';
 import { createOrder } from '../services/apiService';
+import { showError } from '../utils/toast';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web';
@@ -42,10 +42,7 @@ export default function CheckoutScreen({ navigation }) {
     const { status } =
       await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      return Alert.alert(
-        'Permission denied',
-        'Photo access is required to upload receipt.'
-      );
+      return showError('Permission denied', 'Photo access is required to upload receipt.');
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -62,10 +59,7 @@ export default function CheckoutScreen({ navigation }) {
   const handleConfirm = async () => {
     if (hasActiveOrder) return;
     if (payMethod === 'Bank' && !proof) {
-      return Alert.alert(
-        'Proof required',
-        'Please upload bank transfer receipt.'
-      );
+      return showError('Proof required', 'Please upload bank transfer receipt.');
     }
 
     const apiItems = cartItems.map((i) => ({
@@ -91,7 +85,7 @@ export default function CheckoutScreen({ navigation }) {
         routes: [{ name: 'OrderTracker', params: { orderId: data.order._id, order: data.order } }],
       });
     } catch (err) {
-      Alert.alert('Order failed', err.message || 'Could not place order. Please try again.');
+      showError('Order failed', err.message || 'Could not place order. Please try again.');
     } finally {
       setSubmitting(false);
     }

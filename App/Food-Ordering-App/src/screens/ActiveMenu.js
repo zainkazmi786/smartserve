@@ -9,7 +9,6 @@ import {
   Platform,
   Image,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +17,7 @@ import ScreenWrapper from '../components/ScreenWrapper';
 import { getTodayMenus } from '../services/apiService';
 import { useCart } from '../context/CartContext';
 import { useActiveOrder } from '../context/ActiveOrderContext';
+import { showError } from '../utils/toast';
 
 export default function ActiveMenu({ navigation }) {
   const [menus, setMenus] = useState([]);
@@ -73,7 +73,7 @@ export default function ActiveMenu({ navigation }) {
       setError(err.message || 'Failed to load menus');
       // Only show alert on initial load, not on refetch
       if (menus.length === 0) {
-        Alert.alert('Error', err.message || 'Failed to load menus. Please try again.');
+        showError('Error', err.message || 'Failed to load menus. Please try again.');
       }
     } finally {
       setLoading(false);

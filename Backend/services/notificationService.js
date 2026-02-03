@@ -74,10 +74,8 @@ export const notifyOrderStatusChange = async (order, newStatus, changedBy = null
       console.log(`📡 WebSocket notification sent: Order ${order._id} → ${newStatus}`);
     }
     
-    // 2. FCM Push Notification (Mobile - if app is closed)
-    // TODO: Implement FCM when firebase-admin is installed
-    // await sendFCMPushNotification(customerId, notificationData);
-    
+    // 2. Expo Push Notification (Mobile - if app is closed/background)
+    await sendExpoPushNotification(customerId, notificationData);
   } catch (error) {
     console.error("Error sending notification:", error);
   }
@@ -99,28 +97,49 @@ const getStatusMessage = (status) => {
 };
 
 /**
- * Send FCM push notification (to be implemented)
- * 
- * This will be implemented later when firebase-admin is added:
- * 
- * import admin from 'firebase-admin';
- * 
- * const sendFCMPushNotification = async (userId, notificationData) => {
- *   const user = await User.findById(userId);
- *   if (!user || !user.fcmToken) return;
- *   
- *   const message = {
- *     token: user.fcmToken,
- *     notification: {
- *       title: 'Order Update',
- *       body: getStatusMessage(notificationData.status),
- *     },
- *     data: notificationData,
- *   };
- *   
- *   await admin.messaging().send(message);
- * };
+ * Send Expo Push notification to customer (when app is closed/background)
  */
+const sendExpoPushNotification = async (userId, notificationData) => {
+  try {
+    const user = await User.findById(userId).select("expoPushToken");
+    if (!user || !user.expoPushToken) return;
+
+    const message = {
+      to: user.expoPushToken,
+      title: "Order Update",
+      body: getStatusMessage(notificationData.status),
+      data: {
+        orderId: notificationData.orderId,
+        status: notificationData.status,
+        type: "order_update",
+      },
+      sound: "default",
+      channelId: "order-updates",
+    };
+
+    const response = await fetch("https://exp.host/--/api/v2/push/send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify([message]),
+    });
+
+    const result = await response.json();
+    const receipt = result.data?.[0];
+    if (receipt?.status === "error" && (receipt.message?.includes("DeviceNotRegistered") || receipt.details?.error === "DeviceNotRegistered")) {
+      await User.findByIdAndUpdate(userId, { expoPushToken: null });
+    }
+    if (!response.ok) {
+      console.warn("Expo push send failed:", result);
+    } else {
+      console.log(`📲 Expo push sent to customer ${userId}`);
+    }
+  } catch (err) {
+    console.error("Expo push error:", err);
+  }
+};
 
 /**
  * Notify kitchen screen about updates (active order or queue changes)

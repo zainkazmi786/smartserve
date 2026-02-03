@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Modal,
   TextInput,
-  Alert,
   ScrollView,
   ActivityIndicator,
   RefreshControl,
@@ -16,6 +15,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import ScreenWrapper from '../components/ScreenWrapper';
+import ReviewModal from '../components/ReviewModal';
 import {
   getOrderHistory,
   getOrder,
@@ -23,6 +23,7 @@ import {
   cancelOrder,
 } from '../services/apiService';
 import { useActiveOrder } from '../context/ActiveOrderContext';
+import { showError, showSuccess } from '../utils/toast';
 
 function formatDate(d) {
   if (!d) return '—';
@@ -54,6 +55,7 @@ export default function OrderHistoryScreen({ navigation }) {
   const [cancelModal, setCancelModal] = useState(false);
   const [cancelNote, setCancelNote] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
   const { activeOrder, clearActiveOrder, fetchActiveOrder } = useActiveOrder();
 
   const fetchOrders = useCallback(async () => {
@@ -112,6 +114,7 @@ export default function OrderHistoryScreen({ navigation }) {
     setViewDetail(null);
     setCancelModal(false);
     setCancelNote('');
+    setShowReviewModal(false);
   }, []);
 
   const handleCancel = async () => {
@@ -126,9 +129,9 @@ export default function OrderHistoryScreen({ navigation }) {
       await fetchOrders();
       setViewDetail(null);
       setViewOrder(null);
-      Alert.alert('Done', 'Order cancelled.');
+      showSuccess('Done', 'Order cancelled.');
     } catch (e) {
-      Alert.alert('Error', e.message || 'Could not cancel order.');
+      showError('Error', e.message || 'Could not cancel order.');
     }
   };
 
@@ -137,7 +140,7 @@ export default function OrderHistoryScreen({ navigation }) {
     if (!order?._id || order.status !== 'disapproved') return;
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission denied', 'Photo access is required to upload receipt.');
+      showError('Permission denied', 'Photo access is required to upload receipt.');
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -153,7 +156,7 @@ export default function OrderHistoryScreen({ navigation }) {
       setViewDetail(updated);
       await fetchOrders();
     } catch (e) {
-      Alert.alert('Error', e.message || 'Failed to upload receipt.');
+      showError('Error', e.message || 'Failed to upload receipt.');
     } finally {
       setUploading(false);
     }
@@ -170,6 +173,7 @@ export default function OrderHistoryScreen({ navigation }) {
   const canCancel = display && ['payment_uploaded', 'cash_selected'].includes(display.status);
   const isDisapproved = display?.status === 'disapproved';
   const canTrack = display && TRACKABLE.includes(display.status);
+  const canReview = display && display.status === 'received' && !display.reviewedAt;
 
   const renderOrder = ({ item }) => {
     const total = item.pricing?.total ?? 0;
@@ -301,6 +305,14 @@ export default function OrderHistoryScreen({ navigation }) {
                       <Text style={styles.trackBtnModalText}>Track order</Text>
                     </TouchableOpacity>
                   )}
+                  {canReview && (
+                    <TouchableOpacity
+                      style={styles.reviewBtnModal}
+                      onPress={() => setShowReviewModal(true)}
+                    >
+                      <Text style={styles.reviewBtnModalText}>Review order</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               )}
 
@@ -340,6 +352,20 @@ export default function OrderHistoryScreen({ navigation }) {
             </View>
           </View>
         </Modal>
+
+        <ReviewModal
+          visible={showReviewModal}
+          onClose={() => setShowReviewModal(false)}
+          order={viewDetail || viewOrder}
+          onSubmitted={async () => {
+            await fetchOrders();
+            const orderId = viewOrder?._id ?? display?._id;
+            if (orderId) {
+              const updated = await getOrder(orderId).catch(() => null);
+              if (updated) setViewDetail(updated);
+            }
+          }}
+        />
       </View>
     </ScreenWrapper>
   );
@@ -418,6 +444,8 @@ const styles = StyleSheet.create({
   cancelOrderText: { color: '#C62828', fontSize: 15 },
   trackBtnModal: { backgroundColor: '#2D2926', padding: 14, borderRadius: 14, alignItems: 'center' },
   trackBtnModalText: { color: '#fff', fontWeight: '700' },
+  reviewBtnModal: { backgroundColor: '#FFA500', padding: 14, borderRadius: 14, alignItems: 'center' },
+  reviewBtnModalText: { color: '#fff', fontWeight: '700' },
   closeBtn: { marginTop: 15, alignItems: 'center' },
   closeText: { color: '#FFA500', fontWeight: '700' },
 

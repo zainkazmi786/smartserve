@@ -7,6 +7,7 @@ import {
   cancelOrder,
   markOrderReady,
   markOrderReceived,
+  markOrderReviewed,
   getOrder,
   getOrderHistory,
   getMyActiveOrder,
@@ -82,6 +83,13 @@ router.post("/:id/mark-ready", authenticate, markOrderReady);
  * @access  Private (Customer, or Manager/Receptionist for testing)
  */
 router.post("/:id/mark-received", authenticate, requireRole("customer", "manager", "receptionist"), markOrderReceived);
+
+/**
+ * @route   PATCH /api/orders/:id/reviewed
+ * @desc    Mark order as reviewed (Customer)
+ * @access  Private (Customer, or Manager/Receptionist for testing)
+ */
+router.patch("/:id/reviewed", authenticate, requireRole("customer", "manager", "receptionist"), markOrderReviewed);
 
 /**
  * @route   GET /api/orders/me/active

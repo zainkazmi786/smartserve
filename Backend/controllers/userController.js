@@ -394,6 +394,43 @@ export const updateProfile = async (req, res) => {
 };
 
 /**
+ * PUT /api/users/profile/push-token
+ * Update Expo Push Token for push notifications (customer app).
+ */
+export const updatePushToken = async (req, res) => {
+  try {
+    const { expoPushToken } = req.body;
+    const userId = req.user._id;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { expoPushToken: expoPushToken || null },
+      { new: true }
+    )
+      .select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Push token updated",
+      data: { user },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to update push token",
+      error: error.message,
+    });
+  }
+};
+
+/**
  * PUT /api/users/profile/password
  * Change user password
  */

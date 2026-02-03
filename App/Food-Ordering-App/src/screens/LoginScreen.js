@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, SafeAreaView, ActivityIndicator, Platform, Alert, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { loginUser } from '../services/apiService';
+import { loginUser, updatePushToken } from '../services/apiService';
 import { showError, showSuccess } from '../utils/toast';
 import { Storage } from '../utils/storage';
+import { registerForPushNotificationsAsync } from '../services/notifications';
+import { useSocket } from '../context/SocketContext';
 
 export default function LoginScreen({ navigation }) {
+  const { connect: connectSocket } = useSocket();
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -112,6 +115,18 @@ export default function LoginScreen({ navigation }) {
       }
       if (response.activeCafeId) {
         await Storage.saveActiveCafeId(response.activeCafeId);
+      }
+
+      // Connect Socket.io for real-time order updates
+      connectSocket(response.token, response.user);
+
+      // Register for push notifications (native only) and send token to backend
+      if (Platform.OS !== 'web') {
+        registerForPushNotificationsAsync()
+          .then((expoPushToken) => {
+            if (expoPushToken) return updatePushToken(expoPushToken);
+          })
+          .catch((err) => console.warn('Push registration failed:', err));
       }
 
       // Success - navigate to Main

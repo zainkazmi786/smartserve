@@ -26,4 +26,6 @@ export const API_ENDPOINTS = {
   MENUS_TODAY: '/api/menus/today',
   ORDERS: '/api/orders',
   ORDERS_ME_ACTIVE: '/api/orders/me/active',
+  PROFILE_PUSH_TOKEN: '/api/users/profile/push-token',
+  REVIEWS: '/api/reviews',
 };
