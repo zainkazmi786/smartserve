@@ -69,17 +69,27 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Database connection
+// Database connection
 mongoose
   .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/smartcafe", {
+    // Standard recommended settings for Mongoose 6+
     useNewUrlParser: true,
     useUnifiedTopology: true,
+    
+    // THE FIXES:
+    tls: true,                 // Force TLS (Atlas requirement)
+    family: 4,                 // Force IPv4 (Azure outbound stability)
+    directConnection: true,    // Bypass replica set discovery (fixes "No Primary" error)
+    serverSelectionTimeoutMS: 5000, // Don't wait 30 seconds to fail
   })
   .then(() => {
-    console.log("Connected to MongoDB");
+    console.log("✅ Connected to MongoDB");
   })
   .catch((error) => {
-    console.error("MongoDB connection error:", error);
-    process.exit(1);
+    console.error("❌ MongoDB connection error:", error);
+    // On Azure, it's better to let the app try to restart rather than hard exit
+    // unless you want the container to enter a crash loop for visibility.
+    process.exit(1); 
   });
 
 // Routes
