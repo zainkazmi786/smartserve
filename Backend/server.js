@@ -73,7 +73,7 @@ mongoose
   .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/smartcafe", {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    USE
+    
   })
   .then(() => {
     console.log("Connected to MongoDB");
